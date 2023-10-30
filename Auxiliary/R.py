@@ -31,7 +31,7 @@ def Diverse_module_1(image,now_ti,gap):
     resize_image=random_image_resize(image,low=now_resize_low,high=now_resize_high)
     return resize_image
 
-def Diverse_module_2(image,UAU,now_ti,gap):
+def Diverse_module_2(image,now_ti,gap):
     #注意这边的扰动~应该是小数点，而不是整数，我读
     resize_image=Diverse_module_1(image,now_ti,gap)
     noise_max=0.05
@@ -40,9 +40,7 @@ def Diverse_module_2(image,UAU,now_ti,gap):
     pow_num=now_ti//gap
     now_noise=min(pow(noise_index,pow_num)*noise_start,noise_max)
     noise_resize_image=random_noise(resize_image,-1*now_noise,now_noise)
-    h,w=resize_image.shape[2:]
-    resize_UAU=transforms.Resize([h, w])(UAU)
-    return noise_resize_image,resize_UAU
+    return noise_resize_image
 
 def extract_background(img_tensor: torch.Tensor):
     assert (len(img_tensor.shape) == 4 and img_tensor.shape[0] == 1)

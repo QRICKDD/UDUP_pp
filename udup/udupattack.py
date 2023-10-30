@@ -118,9 +118,8 @@ class RepeatAdvPatch_Attack():
         return None, None
 
     #self.CallLoss(res, res_du, x_d2 - DU_d2, it_adv_patch, m_d2)
-    def CallLoss(self,text_feamap,adv_patch,device_name):
-
-        pred = text_feamap[-1]
+    def DetLoss(self,det_predict,adv_patch,device_name):
+        pred = det_predict
         # if modle_name=='CRAFT':
         #     target = torch.ones_like(pred)
         #     target =target*(-0.1)
@@ -131,15 +130,6 @@ class RepeatAdvPatch_Attack():
         grad = torch.autograd.grad(-dloss,adv_patch, retain_graph=False, create_graph=False, allow_unused=True)[0]
         return grad.detach().cpu(),log_dloss
 
-    # 快捷初始化
-    def inner_init_adv_patch_image(self, mask, image, hw, device):
-        adv_patch = self.adv_patch.clone().detach()
-        adv_patch = adv_patch.to(device)
-        adv_patch.requires_grad = True
-        image = image.to(device)
-        adv_image = self.get_merge_image(adv_patch, mask=mask,
-                                         image=image, hw=hw, device=device)
-        return adv_patch, adv_image
 
     def train(self):
         momentum = 0
@@ -173,19 +163,14 @@ class RepeatAdvPatch_Attack():
                 h, w = x_d1.shape[2:]
                 DU = repeat_4D(patch=it_adv_patch, h_real=h, w_real=w)
                 merge_x = DU * m + x_d1 * (1 - m)
-                x_d2, DU_d2 = Diverse_module_2(image=merge_x,UAU=DU,now_ti=t, gap=self.gap)
+                x_d2= Diverse_module_2(image=merge_x,UAU=DU,now_ti=t, gap=self.gap)
 
-                _, res = single_grad_inference(self.CRAFTmodel, x_d2, self.midLayer, self.model_name,is_eval=False)
-                _, res_du = single_grad_inference(self.CRAFTmodel_2, DU_d2, self.midLayer, self.model_name,is_eval=False)
+                det_predict= self.model.textdet_inferencer.model()
 
 
-                res = [v.fea.clone() for v in res]
-                res_du = [v.fea.clone() for v in res_du]
-
-                grad, temp_mmloss, temp_dloss = self.CallLoss(res, res_du, x_d2 - DU_d2, it_adv_patch,self.model_name,now_p.item())
+                grad, det_bceloss = self.DetLoss(det_predict, it_adv_patch,self.device_name)
                 sum_grad += grad
-                batch_dLoss += temp_dloss
-                batch_mmLoss += temp_mmloss
+                batch_dLoss += det_bceloss
                 torch.cuda.empty_cache()
 
 
