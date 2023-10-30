@@ -1,0 +1,1 @@
+mmocr_path='/workspace/mmocr'

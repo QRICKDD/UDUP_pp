@@ -1,0 +1,27 @@
+需要抽取过程的模型：
+CRAFT#
+DBNET
+PANet*
+PSENet*
+
+需要抽取过程的识别器：
+CRNN
+NRTR*
+
+
+
+如何抽取过程：
+abspath="/workspace/mmocr"
+ocr=MMOCRInferencer(rec='NRTR',device='cuda:4')#,rec='CRNN' det='DBNet',
+->断点ocr(os.path.join(abspath,'demo/apple.jpg')
+分析pipline
+	走完pipline后注意：在在进入
+mmocr/models/textdet/data_preprocessors/data_preprocessor
+	basemodel.data_preprocessor.ImgDataPreprocessor中还有预处理
+
+
+输出维度：1，C，H，W
+
+
+构建udup攻击~，并在未来测试可转移性的ADE~
+ps：这个只产生一次，但需要选择哪个更容易攻击~
