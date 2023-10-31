@@ -69,7 +69,7 @@ class RepeatAdvPatch_Attack():
         self.gap = gap
 
         # initiation
-        self.adv_patch = torch.ones(list(adv_patch_size))
+        self.adv_patch = torch.ones(list(adv_patch_size))*255
         self.start_epoch = 1
         self.t=0
         # recover adv patch
@@ -152,7 +152,6 @@ class RepeatAdvPatch_Attack():
             batch_dLoss = 0
             sum_grad = torch.zeros_like(self.adv_patch)
 
-            now_p=torch.mean(torch.ones_like(self.adv_patch) - self.adv_patch.cpu())
 
             for [x] in batch_dataset:
                 it_adv_patch=self.adv_patch.clone().detach().to(self.device_name)
@@ -163,9 +162,9 @@ class RepeatAdvPatch_Attack():
                 h, w = x_d1.shape[2:]
                 DU = repeat_4D(patch=it_adv_patch, h_real=h, w_real=w)
                 merge_x = DU * m + x_d1 * (1 - m)
-                x_d2= Diverse_module_2(image=merge_x,UAU=DU,now_ti=t, gap=self.gap)
+                x_d2= Diverse_module_2(image=merge_x,now_ti=t, gap=self.gap)
 
-                det_predict= self.model.textdet_inferencer.model()
+                det_predict= self.model.textdet_inferencer.model(x_d2)
 
 
                 grad, det_bceloss = self.DetLoss(det_predict, it_adv_patch,self.device_name)
@@ -182,13 +181,12 @@ class RepeatAdvPatch_Attack():
 
 
             temp_patch = self.adv_patch.clone().detach().cpu() + self.alpha * grad.sign()
-            temp_patch = torch.clamp(temp_patch, min=1-self.eps, max=1)
+            temp_patch = torch.clamp(temp_patch, min=255-self.eps, max=255)
             self.adv_patch = temp_patch
 
             # update logger
-            e = "iter:{}, batch_loss==mmLoss:{},dloss:{}==pert:{}==".format(t, batch_mmLoss / self.batch_size,
-                                                                    batch_dLoss / self.batch_size,
-                                                                    torch.mean(torch.ones_like(temp_patch)-temp_patch))
+            e = "iter:{},dloss:{}==pert:{}==".format(t, batch_dLoss / self.batch_size,
+                                                     torch.mean(torch.ones_like(temp_patch)-temp_patch))
             self.logger.info(e)
 
             # save adv_patch with
@@ -251,21 +249,3 @@ class RepeatAdvPatch_Attack():
         e="iter:{},original:--P:{},--R:{},--F:{}".format(t,P,R,F)
         self.logger.info(e)
 
-        #=================scale=====================
-        #data_root
-            #test_resize
-            #test_resize_gt
-                #60
-                #...
-                #200
-        # resize_scales = [item / 10 for item in range(6, 21, 1)]#0.6 0.7 0.8 ... 2.0
-        # for item in resize_scales:
-        #     str_s=str(int(item * 100))
-        #     r_img_root=os.path.join(self.data_root,'test_resize')
-        #     r_gt_root = os.path.join(self.data_root, 'test_resize_gt',str_s)
-        #     r_save_dir = os.path.join(self.savedir, str(t), str_s)
-        #     if os.path.exists(r_save_dir) == False:
-        #         os.makedirs(r_save_dir)
-        #     P,R,F=self.evaluate_and_draw(self.adv_patch,r_img_root,r_gt_root,r_save_dir)
-        #     e="iter:{},scale_ratio:{},P:{},R:{},F:{}".format(t,item,P,R,F)
-        #     self.logger.info(e)
