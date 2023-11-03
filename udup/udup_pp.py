@@ -167,8 +167,6 @@ class UDUPpp_Attack():
             torch.save(self.adv_patch, os.path.join(temp_torch_save_path, "advpatch_{}".format(t)))
 
 
-
-
     def DetLoss(self,pred,it_adv_patch):
         if self.miss_or_show == 'miss':
             target = torch.zeros_like(pred)
