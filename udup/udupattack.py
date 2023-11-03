@@ -134,10 +134,6 @@ class RepeatAdvPatch_Attack():
     def train(self):
         momentum = 0
 
-        alpha_beta =  5/255
-        gamma = alpha_beta
-        amplification = 0.0
-
         print("start training-====================")
         shuff_ti = 0  # train_dataset_iter
         for t in range(self.t + 1, self.T):
@@ -182,6 +178,10 @@ class RepeatAdvPatch_Attack():
 
             temp_patch = self.adv_patch.clone().detach().cpu() + self.alpha * grad.sign()
             temp_patch = torch.clamp(temp_patch, min=255-self.eps, max=255)
+
+
+
+
             self.adv_patch = temp_patch
 
             # update logger

@@ -2,7 +2,7 @@ import torch
 from torchvision import transforms
 import random
 import numpy as np
-def random_noise(image: torch.Tensor,noise_low,noise_high):
+def Random_noise(image: torch.Tensor,noise_low,noise_high):
     assert (len(image.shape) == 4 and image.shape[0] == 1)
     device=image.device
     temp_image=image.clone().detach().cpu().numpy()
@@ -13,7 +13,7 @@ def random_noise(image: torch.Tensor,noise_low,noise_high):
     image=torch.clamp(image+noise,min=0,max=1)
     return image
 
-def random_image_resize(image: torch.Tensor, low=0.25, high=3):
+def Random_image_resize(image: torch.Tensor, low=0.25, high=3):
     assert (len(image.shape) == 4 and image.shape[0] == 1)
     scale = random.random()
     shape = image.shape
@@ -28,7 +28,7 @@ def Diverse_module_1(image,now_ti,gap):
     pow_num=now_ti//gap
     now_resize_low=max(pow(low_index,pow_num),max_resize_range[0])
     now_resize_high = min(pow(high_index, pow_num),max_resize_range[1])
-    resize_image=random_image_resize(image,low=now_resize_low,high=now_resize_high)
+    resize_image=Random_image_resize(image,low=now_resize_low,high=now_resize_high)
     return resize_image
 
 def Diverse_module_2(image,now_ti,gap):
@@ -39,7 +39,7 @@ def Diverse_module_2(image,now_ti,gap):
     noise_index=1.5
     pow_num=now_ti//gap
     now_noise=min(pow(noise_index,pow_num)*noise_start,noise_max)
-    noise_resize_image=random_noise(resize_image,-1*now_noise,now_noise)
+    noise_resize_image=Random_noise(resize_image,-1*now_noise,now_noise)
     return noise_resize_image
 
 def extract_background(img_tensor: torch.Tensor):
@@ -60,3 +60,16 @@ def repeat_4D(patch: torch.Tensor,h_real, w_real) -> torch.Tensor:
     patch = patch.repeat(1, 1, h_num, w_num)
     patch = patch[:, :, :h_real, :w_real]
     return patch
+
+def repeat_4D_rec(patch: torch.Tensor,h_real, w_real)-> torch.Tensor:
+    patch_h, patch_w = patch.shape[2:]
+    h_num = h_real // patch_h + 1
+    w_num = w_real // patch_w + 1
+    patch = patch.repeat(1, 1, h_num, w_num)
+    random_h=random.randint(0,patch.shape[2]-h_real)
+    random_w=random.randint(0,patch.shape[-1]-w_real)
+    patch=patch[:,:,random_h:random_h+h_real,random_w:random_w+w_real]
+    return patch
+
+def Shake_Box(box):
+    return box

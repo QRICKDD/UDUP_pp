@@ -5,6 +5,10 @@ import torch.nn.functional as F
 import math
 test_img_path='/workspace/mmocr/demo/demo_text_ocr.jpg'
 
+
+
+
+
 def img_read(image_path) -> torch.Tensor:
     transform = transforms.ToTensor()
     im = cv2.imread(image_path, 1)
@@ -50,6 +54,18 @@ def mmocr_imgread(img_path):
     im = im.permute(2, 0, 1).contiguous()
     im = im.float()
     return im.unsqueeze(0)
+
+def save_adv_patch_img(adv_patch:torch.Tensor,img_path):
+    """
+    注意，保存的结果是图片~，但如果直接保存adv_patch 必须结合mmocr——imread流程
+    """
+    if len(adv_patch.shape)==4:
+        adv_patch=adv_patch.sequeeze(0)
+    adv_patch=adv_patch.permute(1,2,0).contiguous()
+    adv_patch_numpy=adv_patch.numpy()
+    adv_patch_numpy.astype(int)
+    cv2.imwrite(adv_patch_numpy,img_path)
+
 
 def DBNet_intTrans(img):
     assert isinstance(img,torch.Tensor) and img.requires_grad==True and img.device.type=='cuda'
@@ -105,3 +121,8 @@ def CRNN_inputTrans(img,device):
     imgray=imgray.unsqueeze(0)
     imgray = transforms.Resize([new_h, new_w], interpolation=transforms.InterpolationMode.BILINEAR)(imgray)
     return imgray
+
+def mmocr_inputTrans(img,model_name,device):
+    if model_name=='crnn':
+        return CRNN_inputTrans(img,device)
+

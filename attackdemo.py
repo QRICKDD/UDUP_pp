@@ -18,7 +18,8 @@ abspath="/workspace/mmocr"
 ocr=MMOCRInferencer(rec='CRNN',device=device_name)
 
 img_path='/workspace/mmocr/demo/apple.jpg'
-img=CRNN_inputload(img_path)
+img=mmocr_imgread(img_path)
+
 img=img.to(device_name)
 
 # noise=torch.zeros_like(img)
@@ -48,11 +49,13 @@ for item in tm_i[0]:
     if item.item()!=36:
         tt.append(item.item())
 targets=torch.tensor([tt],dtype=torch.int32).to(device_name)
+targets=torch.tensor([[10,25,36,25,21,14,10]], dtype=torch.int32).to(device_name)
+ori_targets=targets
 #targets=torch.tensor([[31, 31]], dtype=torch.int32).to(device_name)
 """
 end
 """
-targets=torch.tensor([[36]], dtype=torch.int32).to(device_name)
+#targets=torch.tensor([[36]], dtype=torch.int32).to(device_name)
 target_lengths = torch.IntTensor([len(t) for t in targets])
 target_lengths = torch.clamp(target_lengths, max=seq_len).long().to(device_name)
 input_lengths=torch.full(size=(bsz,),fill_value=seq_len,dtype=torch.long)
@@ -71,7 +74,7 @@ adv_images.requires_grad=True
 
 
 
-for i in range(200):
+for i in range(100):
     pre_imgray=CRNN_inputTrans(adv_images,device=device_name)
     predict=ocr.textrec_inferencer.model(pre_imgray)
     outputs_for_loss=torch.log_softmax(predict,dim=2)
@@ -84,7 +87,8 @@ for i in range(200):
     bsz, seq_len = outputs_for_loss.size(0), outputs_for_loss.size(1)
     outputs_for_loss = outputs_for_loss.permute(1, 0, 2).contiguous()
     # target_CTC
-    targets=torch.tensor([[36]*N], dtype=torch.int32).to(device_name)
+    targets=torch.tensor([[10,25,25,21,14]], dtype=torch.int32).to(device_name)
+    #targets=ori_targets
     target_lengths = torch.IntTensor([len(t) for t in targets])
     target_lengths = torch.clamp(target_lengths, max=seq_len).long().to(device_name)
     input_lengths=torch.full(size=(bsz,),fill_value=seq_len,dtype=torch.long)
@@ -97,8 +101,8 @@ for i in range(200):
     print(loss_ce)
     #
     #grad = torch.autograd.grad(loss_ctc+t_ce*5, adv_images, retain_graph=False, create_graph=False)[0]
-    grad = torch.autograd.grad(loss_ce+10*loss_ctc, adv_images, retain_graph=False, create_graph=False)[0]
-    adv_images = adv_images.detach() - 5* grad.sign()
+    grad = torch.autograd.grad(loss_ctc, adv_images, retain_graph=False, create_graph=False)[0]
+    adv_images = adv_images.detach() + 5* grad.sign()
     adv_images = torch.clamp(adv_images, min=0, max=255).detach()
 
     """
@@ -125,5 +129,3 @@ print("orgin ouput:",torch.max(predict,dim=2))
 # grad = torch.autograd.grad(loss_ctc, pre_img, retain_graph=False, create_graph=False)[0]
 # adv_images = pre_img.detach() + 5 * grad.sign()
 # adv_images = torch.clamp(adv_images, min=0, max=255).detach()
-
-
