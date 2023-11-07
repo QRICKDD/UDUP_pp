@@ -104,6 +104,7 @@ class UDUPpp_Attack():
                 rec_loss
                 """
                 if self.rec_model_name!=None:
+                    rec_total_img=x.clone().detach()
                     gt_dataset= load_gt(gt_path)
                     random.shuffle(gt_dataset)
                     batch_len=min(self.batch_gt_num,len(gt_dataset))
@@ -114,7 +115,7 @@ class UDUPpp_Attack():
                         it_adv_patch.requires_grad = True
 
                         box=Shake_Box(box)
-                        cut_img = get_cut_img(box).to(self.device_name)
+                        cut_img = get_cut_img(box,rec_total_img).to(self.device_name)
                         m = extract_background(cut_img)
                         h, w = cut_img.shape[2:]
                         DU = repeat_4D_rec(patch=it_adv_patch, h_real=h, w_real=w)

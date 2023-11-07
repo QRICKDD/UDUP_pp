@@ -5,8 +5,9 @@ all about dataset loading
 """
 import os
 import torch
+import numpy as np
 
-
+from UDUP_pp.Allconfig.Dict_Config as dc
 from UDUP_pp.tools.imageio import mmocr_imgread
 
 
@@ -39,15 +40,32 @@ def load_gt(gt_path):
     """
     :return:numpy.darry([[x1,y1,x2,y2],...]) true_label: np.darryy[[12,54,32]]
     """
-    boxes_list=[]
-    gt_list=[]
-    res=[(boxes_list[0],gt_list[0])]
+    with open(gt_path,'r') as f:
+        datas=f.readlines()
+    res=[]
+    for item in datas:
+        boxes_str=item.split("\t")[0]
+        boxes=np.array([int(pos) for pos in boxes_str.split(",")])
+        gt=item.split("\t")[-1].strip()
+        res.append((boxes,gt))
     return res
 
-def get_cut_img(box)->torch.Tensor:
-    cut_img=torch.Tensor([0])
+def get_cut_img(box,img)->torch.Tensor:
+    x_pos=box[::2]
+    y_pos=box[1::2]
+    x_max,x_min=max(x_pos),min(x_pos)
+    y_max, y_min = max(y_pos), min(y_pos)
+    cut_img=img[:,:,x_min:x_max,y_min:y_max]
     return cut_img
 
-def get_dict_gt(gt)->torch.Tensor:
-    dict_gt=torch.Tensor([0])
-    return dict_gt
+def get_dict_gt(gt,rec_model_name)->torch.Tensor:
+    if rec_model_name=='crnn':
+        rec_dict=dc.SRA_dict
+    gt_index_list=[]
+    keys=rec_dict.keys()
+    for item in gt:
+        if item not in keys:
+            continue
+        else:
+            gt_index_list.append(rec_dict[item])
+    return rec_dict
