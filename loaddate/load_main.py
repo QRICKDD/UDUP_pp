@@ -7,34 +7,33 @@ import os
 import torch
 import numpy as np
 
-from UDUP_pp.Allconfig.Dict_Config as dc
+import UDUP_pp.Allconfig.Dict_Config as dc
 from UDUP_pp.tools.imageio import mmocr_imgread
 
 
-def init_train_dataset(data_root):
+def init_train_dataset(train_img_path,train_gt_path):
     train_dataset=[]
-    train_path = os.path.join(data_root, "train")
-    train_gt_path = os.path.join(data_root, "train_craft_gt")
-    train_images = [mmocr_imgread(os.path.join(train_path, name)) for name in os.listdir(train_path)]
-    train_gts = [os.path.join(train_path, name) for name in os.listdir(train_gt_path)]
-    for image,gt in zip(train_images,train_gts):
+    train_imgs=os.listdir(train_img_path)
+    train_imgs.sort()
+    train_img_dataset = [mmocr_imgread(os.path.join(train_img_path, name)) for name in train_imgs]
+    train_gts=os.listdir(train_gt_path)
+    train_gts.sort()
+    train_gt_dataset=[os.path.join(train_gt_path,name) for name in train_gts]
+    for image,gt in zip(train_img_dataset,train_gt_dataset):
         train_dataset.append([image,gt])
     return train_dataset
 
-def init_test_dataset(data_root):
-    #有待修改
+def init_test_dataset(test_img_path,test_gt_path):
     test_dataset=[]
-    test_path = os.path.join(data_root, "test")
-    test_gt_path = os.path.join(data_root, "test_craft_gt")
-    test_images = [mmocr_imgread(os.path.join(test_path, name)) for name in os.listdir(test_path)]
-    test_gts=[os.path.join(test_gt_path,name) for name in os.listdir(test_gt_path)]
-    for image,gt in zip(test_images,test_gts):
+    test_imgs=os.listdir(test_img_path)
+    test_imgs.sort()
+    test_img_dataset = [mmocr_imgread(os.path.join(test_img_path, name)) for name in test_imgs]
+    test_gts=os.listdir(test_gt_path)
+    test_gts.sort()
+    test_gt_dataset=[os.path.join(test_gt_path,name) for name in test_gts]
+    for image,gt in zip(test_img_dataset,test_gt_dataset):
         test_dataset.append([image,gt])
     return test_dataset
-
-
-def cal_x_y():
-    pass
 
 def load_gt(gt_path):
     """
@@ -55,7 +54,7 @@ def get_cut_img(box,img)->torch.Tensor:
     y_pos=box[1::2]
     x_max,x_min=max(x_pos),min(x_pos)
     y_max, y_min = max(y_pos), min(y_pos)
-    cut_img=img[:,:,x_min:x_max,y_min:y_max]
+    cut_img=img[:,:,y_min:y_max,x_min:x_max]#1,3,h,w
     return cut_img
 
 def get_dict_gt(gt,rec_model_name)->torch.Tensor:
@@ -68,4 +67,5 @@ def get_dict_gt(gt,rec_model_name)->torch.Tensor:
             continue
         else:
             gt_index_list.append(rec_dict[item])
-    return rec_dict
+    target=torch.tensor([gt_index_list],dtype=torch.int32)
+    return target

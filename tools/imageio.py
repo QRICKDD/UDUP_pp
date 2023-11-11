@@ -3,10 +3,11 @@ import cv2
 from torchvision import transforms
 import torch.nn.functional as F
 import math
+import matplotlib.pyplot as plt
 test_img_path='/workspace/mmocr/demo/demo_text_ocr.jpg'
 
 
-
+#from UDUP_pp.tools.imageio import img_tensorshow
 
 
 def img_read(image_path) -> torch.Tensor:
@@ -23,9 +24,15 @@ def img_tensortocv2(img_tensor: torch.Tensor):
     assert (len(img_tensor.shape) == 4 and img_tensor.shape[0] == 1)
     img_tensor = img_tensor.clone().detach().cpu()
     img_tensor = img_tensor.squeeze()
-    img_tensor = img_tensor.mul_(255).clamp_(0, 255).permute(1, 2, 0).type(torch.uint8).numpy()
+    #img_tensor = img_tensor.mul_(255).clamp_(0, 255).permute(1, 2, 0).type(torch.uint8).numpy()
+    img_tensor = img_tensor.permute(1, 2, 0).type(torch.uint8).numpy()
     img_cv = cv2.cvtColor(img_tensor, cv2.COLOR_RGB2BGR)
     return img_cv
+
+def img_tensorshow(img):
+    imcv=img_tensortocv2(img)
+    plt.imshow(imcv)
+    plt.show()
 
 def test_cv_tensor():
     img_path=test_img_path
@@ -49,9 +56,9 @@ def scale_size(old_w,old_h,task):
     return new_w,new_h,scale[0]
 
 def mmocr_imgread(img_path):
-    im = cv2.imread(img_path, 1)
+    im = cv2.imread(img_path, 1) #读入的图像是(h,w,3)
     im = torch.from_numpy(im)
-    im = im.permute(2, 0, 1).contiguous()
+    im = im.permute(2, 0, 1).contiguous()  #(3,h,w)
     im = im.float()
     return im.unsqueeze(0)
 
@@ -115,7 +122,7 @@ def CRNN_inputTrans(img,device):
     new_w = math.ceil(float(new_h) / h * w)
     #最小w
     min_w,w_divisor=32,16
-    new_h=min(min_w,new_w)
+    # new_h=min(min_w,new_w)
     if new_w%w_divisor!=0:#对其width
         new_w=round(new_w/w_divisor)*w_divisor
     imgray=imgray.unsqueeze(0)

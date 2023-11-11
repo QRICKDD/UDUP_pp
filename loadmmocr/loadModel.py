@@ -13,5 +13,7 @@ def loadCRNN(device_name):
 
 def loadmodel_byname(name,device_name):
     if name=="dbnet":
-        return loadDBNet(det='DBnet',device_name=device_name)
+        return loadDBNet(device_name)
+    elif name=='crnn':
+        return loadCRNN(device_name)
     return None

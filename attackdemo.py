@@ -17,7 +17,11 @@ device_name='cuda:0'
 abspath="/workspace/mmocr"
 ocr=MMOCRInferencer(rec='CRNN',device=device_name)
 
+
 img_path='/workspace/mmocr/demo/apple.jpg'
+
+ocr(img_path)
+
 img=mmocr_imgread(img_path)
 
 img=img.to(device_name)

@@ -71,5 +71,26 @@ def repeat_4D_rec(patch: torch.Tensor,h_real, w_real)-> torch.Tensor:
     patch=patch[:,:,random_h:random_h+h_real,random_w:random_w+w_real]
     return patch
 
-def Shake_Box(box):
-    return box
+def Shake_Box(box,cut_img,device_name):
+    x_pos=box[::2]
+    y_pos=box[1::2]
+    x_max,x_min=max(x_pos),min(x_pos)
+    y_max, y_min = max(y_pos), min(y_pos)
+    x_offset=random.randint(0,int((x_max-x_min)/10))
+    y_offset = random.randint(0, int((y_max - y_min) / 10))
+    x_r_or_l=random.choice([-1,1])
+    y_u_or_d = random.choice([-1, 1])
+
+    x_pad=torch.ones(1,3,y_max-y_min,x_offset)*255
+    y_pad = torch.ones(1, 3, y_offset,x_max-x_min+x_offset)*255
+    x_pad=x_pad.to(device_name)
+    y_pad=y_pad.to(device_name)
+    if x_r_or_l==-1:#左
+        cut_img=torch.cat((x_pad,cut_img),dim=-1)
+    elif x_r_or_l==1:
+        cut_img = torch.cat((cut_img,x_pad), dim=-1)
+    if y_u_or_d==-1:#上
+        cut_img=torch.cat((y_pad,cut_img),dim=2)
+    elif y_u_or_d==1:#下
+        cut_img=torch.cat((cut_img,y_pad),dim=2)
+    return cut_img
