@@ -1,7 +1,7 @@
 import os
 import math
 import cv2
-from UDUP_pp.Allconfig.Path_Config import train_data_path,train_gt_path
+
 from mmocr.apis import MMOCRInferencer
 #import easyocr
 
@@ -36,7 +36,8 @@ def load_model_and_predict(device_name,data_path,gt_dir_path):
 #     result = reader.readtext(os.path.join(train_data_path,"001.png"))
 #     print(result)
 
-if __name__=="__main__":
+def test_get_train_label():
+    from UDUP_pp.Allconfig.Path_Config import train_data_path, train_gt_path
     device_name='cuda:0'
     train_path=train_data_path
     train_gt_path=train_gt_path
@@ -45,3 +46,16 @@ if __name__=="__main__":
 
     load_model_and_predict(device_name,train_path,train_gt_path)
     print("aaa")
+
+def test_get_eval_label():
+    from UDUP_pp.Allconfig.Path_Config import test_data_path,test_gt_path
+    device_name = 'cuda:0'
+    test_path = test_data_path
+    test_gt_path = test_gt_path
+    if os.path.exists(test_gt_path) != True:
+        os.makedirs(test_gt_path)
+
+    load_model_and_predict(device_name, test_path, test_gt_path)
+    print("aaa")
+
+test_get_eval_label()

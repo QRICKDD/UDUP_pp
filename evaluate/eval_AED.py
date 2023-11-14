@@ -1,20 +1,14 @@
 from __future__ import division
 import os
 import re
-import sys
+import shapely
 from shapely.geometry import Polygon
-from shapely.geometry import MultiPoint
 import numpy as np
-from difflib import SequenceMatcher
-from collections import defaultdict
-import operator
+
 import editdistance
 from hanziconv import HanziConv
-import csv
-import glob
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+
 
 IOU_THRESH = 0.5
 N_TEST = 4229
@@ -31,20 +25,9 @@ def polygon_from_str(poly_str):
     return polygon
 
 def extract_num(poly_str):
-
-    res1 = ''
-    res2 = ''
-    sum = 0
-    for i in poly_str:
-        if i == ',':
-            sum += 1
-            if sum <8:
-                res1 += ','
-        elif sum == 8:
-            res2 += i
-        else:
-            res1 += i
-
+    res=poly_str.split('\t')
+    res1=res[0]
+    res2=res[-1]
     return res1,res2
 
 def gt_from_line(gt_line):
@@ -64,7 +47,7 @@ def gt_from_line(gt_line):
 
 
     gt_polygon = polygon_from_str(gt_polygon1)
-    gt = {'polygon': gt_polygon,  'text': gt_text}
+    gt = {'polygon': gt_polygon,  'text': gt_text.strip()}
     #print(gt)
     return gt
 
@@ -160,10 +143,10 @@ def recog_eval(gt_dir, recog_dir):
         n_dt = len(dts)
 
         # match dt index of every gt
-        gt_match = np.empty(n_gt, dtype=np.int)
+        gt_match = np.empty(n_gt, dtype=np.int32)
         gt_match.fill(-1)
         # match gt index of every dt
-        dt_match = np.empty(n_dt, dtype=np.int)
+        dt_match = np.empty(n_dt, dtype=np.int32)
         dt_match.fill(-1)
 
         # find match for every GT
@@ -221,4 +204,5 @@ def recog_eval(gt_dir, recog_dir):
 
 
 if __name__ == "__main__":
-    recog_eval('E:/resource\metrics_panpp/rctw17-master/eval_AED/data/gt_txts', 'E:/resource\metrics_panpp/rctw17-master/eval_AED/data/recog_txts/')
+    from UDUP_pp.Allconfig.Path_Config import rec_eval_gt,rec_eval_rec
+    recog_eval(rec_eval_gt,rec_eval_rec)

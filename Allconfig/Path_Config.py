@@ -12,4 +12,9 @@ save_path=osp.join(abspath,"save_path/train_eval")
 
 test_demo_path=[osp.join(abspath,"AllData/test/019.png"),osp.join(abspath,"AllData/test/002.png")]
 
-test_demo_save_path=osp.join(abspath,"AllData/test_demo")
+eval_demo_save_path=osp.join(abspath,"AllData/eval_demo")
+eval_demo_gt_path=osp.join(abspath,"AllData/eval_gt")
+eval_vis_path=osp.join(abspath,"AllData")
+
+rec_eval_gt=osp.join(abspath,"evaluate/ADE_eval_data/gt_txts")
+rec_eval_rec=osp.join(abspath,"evaluate/ADE_eval_data/recog_txts")

@@ -9,17 +9,20 @@ import cv2
 
 from mmocr.apis import MMOCRInferencer
 
-from UDUP_pp.Allconfig.Path_Config import test_demo_path,test_demo_save_path
+from UDUP_pp.Allconfig.Path_Config import eval_vis_path,test_demo_path
 from UDUP_pp.Auxiliary.R import *
 from UDUP_pp.loadmmocr.loadModel import loadmodel_byname
 from UDUP_pp.loaddate.load_main import *
-from UDUP_pp.tools.imageio import mmocr_inputTrans, save_adv_patch_img, img_tensorshow,img_tensortocv2
+from UDUP_pp.tools.imageio import mmocr_inputTrans, img_tensorshow,img_tensortocv2
 from UDUP_pp.tools.Log import logger_config
+from UDUP_pp.evaluate.eval_AED import recog_eval
+from UDUP_pp.evaluate.Generate_gt import write_into_txt
 
 torch.backends.cudnn.enabled = False
 
 class UDUPpp_Attack():
-    def __init__(self, train_root,train_gt_root,test_root,test_gt_root,save_dir,
+    def __init__(self, train_root,train_gt_root,test_root,test_gt_root,
+                 save_dir,save_gt_res,
                  det_model, rec_model, device_name,
                  miss_or_show='miss',
                  adv_patch_size=(1, 3, 50, 50),
@@ -44,9 +47,13 @@ class UDUPpp_Attack():
         self.gap, self.lambda_rec = gap, lambda_rec
         self.adv_patch_size = adv_patch_size
 
-        self.train_root,self.test_root, self.save_dir = train_root,test_root, save_dir
+        self.train_root,self.train_gt_root = train_root,train_gt_root
+        self.test_root,self.test_gt_root=test_root,test_gt_root
+        self.save_dir,self.save_gt_dir=save_dir,save_gt_res
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
+        if not os.path.exists(self.save_gt_dir):
+            os.makedirs(self.save_gt_dir)
         self.train_dataset = init_train_dataset(train_root,train_gt_root)
         #self.test_dataset = init_test_dataset(test_root,test_gt_root)
 
@@ -168,14 +175,17 @@ class UDUPpp_Attack():
             img_tensorshow(self.adv_patch)
 
             # logger记录
-            e = "iter:{}, batch_det_loss:{},batch_rec_loss:{},pert:{}==".format(t, batch_detloss / self.batch_size,
-                                                                                batch_recloss / cal_batch_len,
-                                                                                torch.mean(torch.ones_like(temp_patch)*255
+            if cal_batch_len!=0:
+                e = "iter:{}, batch_det_loss:{},batch_rec_loss:{},pert:{}==".format(t,
+                                                                                    batch_detloss / self.batch_size,
+                                                                                    batch_recloss / cal_batch_len,
+                                                                                    torch.mean(torch.ones_like(temp_patch)*255
                                                                                            - temp_patch))
             #self.logger.info(e)
             print(e)
 
             self.demo_test()
+            recog_eval(self.test_gt_root,self.save_gt_dir)
 
             # adv_patch保存
             # temp_save_path = os.path.join(self.save_dir, "advpatch")
@@ -220,8 +230,18 @@ class UDUPpp_Attack():
             DU = repeat_4D(patch=it_adv_patch, h_real=h, w_real=w)
             merge_x = DU * m + x * (1 - m)
             cv2x=img_tensortocv2(merge_x)
-            save_f=os.path.join(test_demo_save_path,os.path.basename(item))
+            save_f=os.path.join(self.save_dir,os.path.basename(item))#保存到eval_demo
             cv2.imwrite(save_f,cv2x)
-            self.test_ocr(save_f, out_dir=test_demo_save_path,save_vis=True)
+            res=self.test_ocr(save_f, out_dir=eval_vis_path,save_vis=True)#保存到AllData/vis
             torch.cuda.empty_cache()
-            print("tet")
+            #把eval-gt写入self.save_gt_path
+
+            rec_texts = res['predictions'][0]['rec_texts']
+            det_polygons = res['predictions'][0]['det_polygons']
+            save_gt_path = os.path.join(self.save_gt_dir, os.path.basename(item).split(".")[0] + ".txt")
+            write_into_txt(rec_texts, det_polygons, h, w, txt_path=save_gt_path)
+
+
+
+
+
