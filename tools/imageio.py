@@ -4,6 +4,7 @@ from torchvision import transforms
 import torch.nn.functional as F
 import math
 import matplotlib.pyplot as plt
+
 test_img_path='/workspace/mmocr/demo/demo_text_ocr.jpg'
 
 
@@ -74,14 +75,17 @@ def save_adv_patch_img(adv_patch:torch.Tensor,img_path):
     cv2.imwrite(adv_patch_numpy,img_path)
 
 
-def DBNet_intTrans(img):
-    assert isinstance(img,torch.Tensor) and img.requires_grad==True and img.device.type=='cuda'
+def DBNet_inputTrans(img,device):
+    #assert isinstance(img,torch.Tensor) and img.requires_grad==True and img.device.type=='cuda'
+    img = img.squeeze()
+    img = img.to(device)
+
     h, w = img.shape[1:]
     new_w, new_h, scale_factor = scale_size(old_w=w, old_h=h, task='dbnet')
     img = transforms.Resize([new_h, new_w], interpolation=transforms.InterpolationMode.BILINEAR)(img)
 
-    mean = torch.Tensor([[[123.6750]], [[116.2800]], [[103.5300]]]).cuda()
-    std = torch.Tensor([[[58.3950]], [[57.1200]],[[57.3750]]]).cuda()
+    mean = torch.Tensor([[[123.6750]], [[116.2800]], [[103.5300]]]).to(device)
+    std = torch.Tensor([[[58.3950]], [[57.1200]],[[57.3750]]]).to(device)
     norm_img=(img-mean)/std
 
     #padding 过程 这是因为很多模型要求输入的shape是32的整数倍
@@ -101,7 +105,8 @@ def DBNet_intTrans(img):
     for idx, tensor in enumerate([norm_img]):
         batch_tensor.append(
             F.pad(tensor, tuple(pad[idx].tolist()), value=pad_value))
-    return torch.stack(batch_tensor)
+    result = torch.stack(batch_tensor)
+    return result
 
 
 #从tensor图片读取
@@ -129,7 +134,209 @@ def CRNN_inputTrans(img,device):
     imgray = transforms.Resize([new_h, new_w], interpolation=transforms.InterpolationMode.BILINEAR)(imgray)
     return imgray
 
+
+def NRTR_inputTrans(img,device):
+
+    img = img.squeeze()
+    img = img.to(device)
+
+    h, w = img.shape[1:]
+    new_h=32
+    new_w = math.ceil(float(new_h) / h * w)
+    #最小w
+    min_w,w_divisor=32,16
+    new_w = max(min_w,new_w)
+    #最大w
+    max_w = 160
+    new_w = min(max_w,new_w)
+
+    #new_h=min(min_w,new_w)
+    if new_w%w_divisor!=0:#对其width
+        new_w=round(new_w/w_divisor)*w_divisor
+
+    img = transforms.Resize([new_h, new_w], interpolation=transforms.InterpolationMode.BILINEAR)(img)
+
+    # padding
+    ori_height, ori_width = img.shape[1:]
+    pad_value = 0
+
+    tensor_size: torch.Tensor = torch.Tensor([tensor.shape for tensor in [img]])
+    max_size = torch.tensor([[3, ori_height, 160]])
+    padded_sizes = max_size - tensor_size
+    padded_sizes[:, 0] = 0
+
+    num_img, dim = 1, 3
+    pad = torch.zeros(num_img, 2 * dim, dtype=torch.int)
+    pad[:, 1::2] = padded_sizes[:, range(dim - 1, -1, -1)]
+    batch_tensor = []
+    for idx, tensor in enumerate([img]):
+        batch_tensor.append(
+            F.pad(tensor, tuple(pad[idx].tolist()), value=pad_value))
+
+    padded_img = batch_tensor[0]
+
+    mean = torch.Tensor([[[123.6750]], [[116.2800]], [[103.5300]]]).to(device)
+    std = torch.Tensor([[[58.3950]], [[57.1200]],[[57.3750]]]).to(device)
+    norm_img=(padded_img-mean)/std
+
+    norm_img_list = []
+    norm_img_list.append(norm_img)
+
+    return torch.stack(norm_img_list)
+
+def PSENet_inputTrans(img,device):
+
+    img = img.squeeze()
+    img = img.to(device)
+
+    h, w = img.shape[1:]
+    new_w, new_h, scale_factor = scale_size(old_w=w, old_h=h, task='psenet')
+    img = transforms.Resize([new_h, new_w], interpolation=transforms.InterpolationMode.BILINEAR)(img)
+
+    mean = torch.Tensor([[[123.6750]], [[116.2800]], [[103.5300]]]).to(device)
+    std = torch.Tensor([[[58.3950]], [[57.1200]],[[57.3750]]]).to(device)
+    norm_img=(img-mean)/std
+
+    #padding 过程 这是因为很多模型要求输入的shape是32的整数倍
+    pad_size=32
+    pad_value=0
+
+    tensor_size: torch.Tensor = torch.Tensor([tensor.shape for tensor in [norm_img]])
+    max_size=torch.ceil(torch.max(tensor_size, dim=0)[0] / pad_size) * pad_size
+    padded_sizes=max_size-tensor_size
+    padded_sizes[:, 0] = 0#第一个size是channel 不需要pad
+    if padded_sizes.sum()==0:
+        return torch.stack(norm_img)
+    num_img,dim=1,3
+    pad = torch.zeros(num_img, 2 * dim, dtype=torch.int)
+    pad[:, 1::2] = padded_sizes[:, range(dim - 1, -1, -1)]
+    batch_tensor = []
+    for idx, tensor in enumerate([norm_img]):
+        batch_tensor.append(
+            F.pad(tensor, tuple(pad[idx].tolist()), value=pad_value))
+
+    return torch.stack(batch_tensor)
+
+def SAR_inputTrans(img,device):
+
+    img = img.squeeze()
+    img = img.to(device)
+
+    h, w = img.shape[1:]
+    new_h=48
+    new_w = math.ceil(float(new_h) / h * w)
+    #最小w
+    min_w,w_divisor=48,4
+    new_w = max(min_w,new_w)
+    #最大w
+    max_w = 160
+    new_w = min(max_w,new_w)
+
+    #new_h=min(min_w,new_w)
+    if new_w%w_divisor!=0:#对其width
+        new_w=round(new_w/w_divisor)*w_divisor
+
+    img = transforms.Resize([new_h, new_w], interpolation=transforms.InterpolationMode.BILINEAR)(img)
+
+    #img = img.permute(1,2,0).contiguous()
+
+    #padding
+    ori_height, ori_width = img.shape[1:]
+    pad_value = 0
+
+    tensor_size: torch.Tensor = torch.Tensor([tensor.shape for tensor in [img]])
+    max_size = torch.tensor([[3,ori_height,160]])
+    padded_sizes=max_size-tensor_size
+    padded_sizes[:, 0] = 0
+
+    num_img, dim = 1, 3
+    pad = torch.zeros(num_img, 2 * dim, dtype=torch.int)
+    pad[:, 1::2] = padded_sizes[:, range(dim - 1, -1, -1)]
+    batch_tensor = []
+    for idx, tensor in enumerate([img]):
+        batch_tensor.append(
+            F.pad(tensor, tuple(pad[idx].tolist()), value=pad_value))
+
+    padded_img = batch_tensor[0]
+
+    mean = torch.Tensor([[[127.0]], [[127.0]], [[127.0]]]).to(device)
+    std = torch.Tensor([[[127.0]], [[127.0]],[[127.0]]]).to(device)
+
+    norm_img=(padded_img-mean)/std
+
+
+    norm_img_list = []
+    norm_img_list.append(norm_img)
+
+    return torch.stack(norm_img_list)
+
+def PANet_inputTrans(img,device):
+
+    img = img.squeeze()
+    img = img.to(device)
+
+    h, w = img.shape[1:]
+    ratio = 1.0
+    aspect = 1.0
+
+    short_size = 736
+    scale = (ratio * short_size) / min(h, w)
+
+    h_scale = scale * math.sqrt(aspect)
+    w_scale = scale / math.sqrt(aspect)
+    new_h = round(h * h_scale)
+    new_w = round(w * w_scale)
+
+    scale_divisor = 1
+    new_h = math.ceil(new_h / scale_divisor) * scale_divisor
+    new_w = math.ceil(new_w / scale_divisor) * scale_divisor
+
+    img = transforms.Resize([new_h, new_w], interpolation=transforms.InterpolationMode.BILINEAR)(img)
+
+    #norm
+    mean = torch.Tensor([[[123.6750]], [[116.2800]], [[103.5300]]]).to(device)
+    std = torch.Tensor([[[58.3950]], [[57.1200]],[[57.3750]]]).to(device)
+    norm_img=(img-mean)/std
+
+    #padding
+    pad_size=32
+    pad_value=0
+
+    tensor_size: torch.Tensor = torch.Tensor([tensor.shape for tensor in [norm_img]])
+    max_size=torch.ceil(torch.max(tensor_size, dim=0)[0] / pad_size) * pad_size
+    padded_sizes=max_size-tensor_size
+    padded_sizes[:, 0] = 0
+    if padded_sizes.sum()==0:
+        return torch.stack(norm_img)
+    num_img,dim=1,3
+    pad = torch.zeros(num_img, 2 * dim, dtype=torch.int)
+    pad[:, 1::2] = padded_sizes[:, range(dim - 1, -1, -1)]
+    batch_tensor = []
+    for idx, tensor in enumerate([norm_img]):
+        batch_tensor.append(
+            F.pad(tensor, tuple(pad[idx].tolist()), value=pad_value))
+
+    return torch.stack(batch_tensor)
+
 def mmocr_inputTrans(img,model_name,device):
     if model_name=='crnn':
         return CRNN_inputTrans(img,device)
+
+    if model_name=='dbnet':
+        return DBNet_inputTrans(img,device)
+
+    if model_name=='nrtr':
+        return NRTR_inputTrans(img,device)
+
+    if model_name=='psenet':
+        return NRTR_inputTrans(img,device)
+
+    if model_name=='sar':
+        return SAR_inputTrans(img,device)
+
+    if model_name=='panet':
+        return PANet_inputTrans(img,device)
+
+
+
 
