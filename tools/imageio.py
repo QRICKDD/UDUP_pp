@@ -4,7 +4,8 @@ from torchvision import transforms
 import torch.nn.functional as F
 import math
 import matplotlib.pyplot as plt
-
+import mmcv
+import numpy as np
 test_img_path='/workspace/mmocr/demo/demo_text_ocr.jpg'
 
 
@@ -46,6 +47,9 @@ def test_cv_tensor():
 def scale_size(old_w,old_h,task):
     if task=="dbnet":
         scale = (4068,1024)
+
+    if task=="psenet":
+        scale = (2240,2240)
 
     max_long_edge = max(scale)
     max_short_edge = min(scale)
@@ -97,7 +101,9 @@ def DBNet_inputTrans(img,device):
     padded_sizes=max_size-tensor_size
     padded_sizes[:, 0] = 0#第一个size是channel 不需要pad
     if padded_sizes.sum()==0:
-        return torch.stack(norm_img)
+        norm_img_list = []
+        norm_img_list.append(norm_img)
+        return torch.stack(norm_img_list)
     num_img,dim=1,3
     pad = torch.zeros(num_img, 2 * dim, dtype=torch.int)
     pad[:, 1::2] = padded_sizes[:, range(dim - 1, -1, -1)]
@@ -206,7 +212,9 @@ def PSENet_inputTrans(img,device):
     padded_sizes=max_size-tensor_size
     padded_sizes[:, 0] = 0#第一个size是channel 不需要pad
     if padded_sizes.sum()==0:
-        return torch.stack(norm_img)
+        norm_img_list = []
+        norm_img_list.append(norm_img)
+        return torch.stack(norm_img_list)
     num_img,dim=1,3
     pad = torch.zeros(num_img, 2 * dim, dtype=torch.int)
     pad[:, 1::2] = padded_sizes[:, range(dim - 1, -1, -1)]
@@ -307,7 +315,9 @@ def PANet_inputTrans(img,device):
     padded_sizes=max_size-tensor_size
     padded_sizes[:, 0] = 0
     if padded_sizes.sum()==0:
-        return torch.stack(norm_img)
+        norm_img_list = []
+        norm_img_list.append(norm_img)
+        return torch.stack(norm_img_list)
     num_img,dim=1,3
     pad = torch.zeros(num_img, 2 * dim, dtype=torch.int)
     pad[:, 1::2] = padded_sizes[:, range(dim - 1, -1, -1)]
@@ -329,7 +339,7 @@ def mmocr_inputTrans(img,model_name,device):
         return NRTR_inputTrans(img,device)
 
     if model_name=='psenet':
-        return NRTR_inputTrans(img,device)
+        return PSENet_inputTrans(img,device)
 
     if model_name=='sar':
         return SAR_inputTrans(img,device)

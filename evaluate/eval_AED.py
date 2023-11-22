@@ -197,7 +197,7 @@ def recog_eval(gt_dir, recog_dir):
 
 
     average_dist = total_dist / num_test
-    print('Average distance: %d / %d = %f' % (total_dist, len(test_gt_files), average_dist))
+    #print('Average distance: %d / %d = %f' % (total_dist, len(test_gt_files), average_dist))
     return average_dist
 
 

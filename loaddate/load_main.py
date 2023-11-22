@@ -31,8 +31,8 @@ def init_test_dataset(test_img_path,test_gt_path):
     test_gts=os.listdir(test_gt_path)
     test_gts.sort()
     test_gt_dataset=[os.path.join(test_gt_path,name) for name in test_gts]
-    for image,gt in zip(test_img_dataset,test_gt_dataset):
-        test_dataset.append([image,gt])
+    for image,name,gt in zip(test_img_dataset,test_imgs,test_gt_dataset):
+        test_dataset.append([image,name,gt])
     return test_dataset
 
 def load_gt(gt_path):

@@ -18,3 +18,8 @@ eval_vis_path=osp.join(abspath,"AllData")
 
 rec_eval_gt=osp.join(abspath,"evaluate/ADE_eval_data/gt_txts")
 rec_eval_rec=osp.join(abspath,"evaluate/ADE_eval_data/recog_txts")
+
+
+log_path=osp.join(abspath,"save_path/mylog.log")
+
+

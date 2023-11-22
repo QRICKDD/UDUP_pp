@@ -7,10 +7,11 @@ def Random_noise(image: torch.Tensor,noise_low,noise_high):
     device=image.device
     temp_image=image.clone().detach().cpu().numpy()
     noise=np.random.uniform(low=noise_low,high=noise_high,size=temp_image.shape)
+    noise=noise.astype(np.int32)
     noise=torch.from_numpy(noise)
     noise=noise.float()
     noise=noise.to(device)
-    image=torch.clamp(image+noise,min=0,max=1)
+    image=torch.clamp(image+noise,min=0,max=255)
     return image
 
 def Random_image_resize(image: torch.Tensor, low=0.25, high=3):
@@ -34,11 +35,11 @@ def Diverse_module_1(image,now_ti,gap):
 def Diverse_module_2(image,now_ti,gap):
     #注意这边的扰动~应该是小数点，而不是整数，我读
     resize_image=Diverse_module_1(image,now_ti,gap)
-    noise_max=0.05
-    noise_start=0.01
+    noise_max=25
+    noise_start=3
     noise_index=1.5
     pow_num=now_ti//gap
-    now_noise=min(pow(noise_index,pow_num)*noise_start,noise_max)
+    now_noise=int(min(pow(noise_index,pow_num)*noise_start,noise_max))
     noise_resize_image=Random_noise(resize_image,-1*now_noise,now_noise)
     return noise_resize_image
 
